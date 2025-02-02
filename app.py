@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 import os
 import mysql.connector
+from flask import Flask, jsonify
+from flask_cors import CORS
+
+# Crear la instancia de Flask
+app = Flask(__name__)
+CORS(app)
 
 # Configuración de la base de datos utilizando las variables de entorno
 DB_CONFIG = {
@@ -12,33 +18,28 @@ DB_CONFIG = {
     'ssl_ca': os.environ.get('MYSQL_SSL_CA') or None
 }
 
-def main():
+@app.route('/productos', methods=['GET'])
+def get_productos():
     try:
         # Conectar a la base de datos
         connection = mysql.connector.connect(**DB_CONFIG)
-        cursor = connection.cursor(dictionary=True)  # Usamos dictionary=True para obtener resultados en forma de diccionario
+        cursor = connection.cursor(dictionary=True)
 
         # Consulta para obtener todos los registros de la tabla 'productos'
         query = "SELECT * FROM productos"
         cursor.execute(query)
         registros = cursor.fetchall()
 
-        # Mostrar los registros obtenidos
-        if registros:
-            print("Registros encontrados en la tabla 'productos':")
-            for registro in registros:
-                print(registro)
-        else:
-            print("No se encontraron registros en la tabla 'productos'.")
+        return jsonify(registros), 200
 
     except mysql.connector.Error as err:
-        print(f"Error al conectarse a la base de datos: {err}")
+        return jsonify({'error': f"Error al conectarse a la base de datos: {err}"}), 500
+
     finally:
-        # Cerrar cursor y conexión si están abiertos
         if cursor:
             cursor.close()
         if connection and connection.is_connected():
             connection.close()
 
 if __name__ == '__main__':
-    main()
+    app.run(debug=True)
